@@ -3,7 +3,7 @@ Integration tests for ocr_service.py endpoints
 """
 import pytest
 from fastapi.testclient import TestClient
-from uuid import uuid4
+from uuid import UUID, uuid4
 from datetime import datetime
 
 from services.ocr_service import app, DocumentType, OCRMode
@@ -248,3 +248,47 @@ class TestOCRService:
         )
 
         assert response.status_code == 404
+
+    def test_confirm_unknown_ocr_result_returns_404(self, client, valid_headers):
+        """Test confirmation returns a clear error for unknown OCR results"""
+        response = client.patch(
+            f"/ocr/{uuid4()}/confirm",
+            json={'extracted_data': {'invoice_number': 'INV-404'}},
+            headers=valid_headers
+        )
+
+        assert response.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_smart_mode_preserves_failed_status_when_credits_are_insufficient(self, monkeypatch, valid_headers):
+        """Test Smart mode does not overwrite an insufficient-credit failure as pending"""
+        from services import ocr_service
+        from services.common import TenantContext
+
+        company_id = UUID(valid_headers['X-Tenant-ID'])
+        user_id = UUID(valid_headers['X-User-ID'])
+        document_id = uuid4()
+
+        async def low_confidence_paddleocr(_image_path):
+            return {}, 0.5
+
+        async def no_credits(_company_id):
+            return 0.0
+
+        monkeypatch.setattr(ocr_service, 'process_paddleocr', low_confidence_paddleocr)
+        monkeypatch.setattr(ocr_service, 'get_credit_balance', no_credits)
+
+        result = await ocr_service.process_ocr_async(
+            document_id,
+            OCRMode.SMART,
+            __file__,
+            TenantContext(
+                company_id=company_id,
+                user_id=user_id,
+                roles=['owner']
+            )
+        )
+
+        assert result.status == 'failed'
+        assert result.error_message is None
+        assert result.extracted_data['error'] == 'Insufficient credits for VLM processing'
