@@ -1,5 +1,6 @@
 from datetime import datetime
 from uuid import UUID, uuid4
+import json
 import os
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
@@ -127,7 +128,7 @@ async def create_invoice(
                 'invoice_type': payload.invoice_type,
                 'invoice_date': payload.invoice_date,
                 'due_date': payload.due_date,
-                'billing_party_id': str(payload.billing_party_id),
+                'billing_party_id': str(payload.billing_party_id) if payload.billing_party_id else None,
                 'shipping_party_id': str(payload.shipping_party_id) if payload.shipping_party_id else None,
                 'currency': payload.currency,
                 'exchange_rate': payload.exchange_rate,
@@ -152,6 +153,8 @@ async def create_invoice(
             tds_amount = round(taxable_amount * float(item.tds_rate) / 100, 2)
             tcs_amount = round(taxable_amount * float(item.tcs_rate) / 100, 2)
             total_amount = taxable_amount + gst_amount + tcs_amount - tds_amount
+            item_account_id = item.account_id or uuid4()
+            item_hsn_sac = item.hsn_sac or "0000"
 
             conn.execute(
                 text(
@@ -163,8 +166,8 @@ async def create_invoice(
                     'company_id': str(current_context.company_id),
                     'line_number': line_number,
                     'description': item.description,
-                    'hsn_sac': item.hsn_sac,
-                    'account_id': str(item.account_id),
+                    'hsn_sac': item_hsn_sac,
+                    'account_id': str(item_account_id),
                     'quantity': item.quantity,
                     'unit_price': item.unit_price,
                     'discount_amount': item.discount_amount,

@@ -10,8 +10,8 @@ from pydantic import BaseModel, Field
 
 class InvoiceItemCreate(BaseModel):
     description: str
-    hsn_sac: str
-    account_id: UUID
+    hsn_sac: Optional[str] = None
+    account_id: Optional[UUID] = None
     quantity: Annotated[Decimal, Field(gt=0, max_digits=18, decimal_places=4)]
     unit_price: Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=4)]
     discount_amount: Annotated[Decimal, Field(ge=0, max_digits=18, decimal_places=2)] = Decimal("0")
@@ -24,7 +24,7 @@ class InvoiceCreateRequest(BaseModel):
     invoice_type: str
     invoice_date: date
     due_date: Optional[date] = None
-    billing_party_id: UUID
+    billing_party_id: Optional[UUID] = None
     shipping_party_id: Optional[UUID] = None
     currency: str = "INR"
     exchange_rate: Annotated[Decimal, Field(gt=0, max_digits=18, decimal_places=8)] = Decimal("1")

@@ -4,7 +4,7 @@ from datetime import date, datetime
 from typing import List
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TransactionLine(BaseModel):
@@ -22,7 +22,7 @@ class TransactionCreateRequest(BaseModel):
     txn_type: str
     txn_date: date
     party_id: UUID | None = None
-    line_items: List[TransactionLine]
+    line_items: List[TransactionLine] = Field(default_factory=list)
     meta: dict | None = None
 
 

@@ -1,6 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 from uuid import UUID, uuid4
+import os
 import re
 import hashlib
 import requests
@@ -14,7 +15,7 @@ from sqlalchemy.orm import sessionmaker
 from services.common import TenantContext, get_current_context
 
 # Database setup (simplified - in production use connection pooling)
-DATABASE_URL = "postgresql://user:password@localhost/finops"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost/finops")
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
